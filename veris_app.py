@@ -55,7 +55,7 @@ col_input, col_empty, col_output = st.columns([1.2, 0.1, 1.2])
 with col_input:
     st.markdown("<h3 style='color:#fff; font-weight:600;'>System Input</h3>", unsafe_allow_html=True)
     
-    content_type = st.selectbox("Verification Type", ["Text", "Link / URL", "Image (Upload)", "Video (Upload)", "Audio (Upload)", "Document (Upload)", "Mixed"])
+    content_type = st.selectbox("Verification Type", ["Text", "Link / URL", "Image (Upload)", "Video (Upload)", "Audio (Upload)", "Document (Upload)", "Email", "Code", "Social Post", "Mixed"])
     
     content = None
     content_data = None
@@ -71,26 +71,17 @@ with col_input:
         if uploaded_file is not None:
             image = Image.open(uploaded_file)
             st.image(image, caption="Uploaded Image", use_column_width=True)
-            
-            # Extract EXIF Metadata
             exif_data = {}
             if image._getexif():
                 for tag_id, value in image._getexif().items():
                     tag = TAGS.get(tag_id, tag_id)
                     exif_data[tag] = value
-            
             st.info(f"**Extracted Metadata:** {len(exif_data)} tags found.")
-            
             i_visual = st.multiselect("Select visual artifacts (if visible):", ["clone stamp", "splicing", "lighting mismatch", "edge blur", "none"])
             content_data = {
-                "metadata": {
-                    "creation_date": exif_data.get("DateTime", "unknown"),
-                    "device": exif_data.get("Make", "unknown"),
-                    "software": exif_data.get("Software", "unknown")
-                },
+                "metadata": {"creation_date": exif_data.get("DateTime", "unknown"), "device": exif_data.get("Make", "unknown"), "software": exif_data.get("Software", "unknown")},
                 "visual_analysis": {"artifacts": [a for a in i_visual if a != "none"]},
-                "text_in_image": "",
-                "source_url": ""
+                "text_in_image": "", "source_url": ""
             }
 
     elif content_type == "Video (Upload)":
@@ -98,17 +89,14 @@ with col_input:
         if uploaded_file is not None:
             st.video(uploaded_file)
             st.info("Video uploaded. (Note: In production, this would run through an AI deepfake scanner).")
-            
             v_visual = st.multiselect("Select visual artifacts:", ["face swap", "lip sync error", "lighting inconsistency", "none"])
             v_audio = st.multiselect("Select audio artifacts:", ["voice clone", "unnatural cadence", "none"])
             v_transcript = st.text_area("Transcript (if available):")
-            
             content_data = {
                 "metadata": {"creation_date": "unknown", "device": "unknown", "resolution": "unknown"},
                 "frame_analysis": {"artifacts": [a for a in v_visual if a != "none"]},
                 "audio_analysis": {"artifacts": [a for a in v_audio if a != "none"]},
-                "transcript": v_transcript,
-                "source_url": ""
+                "transcript": v_transcript, "source_url": ""
             }
 
     elif content_type == "Audio (Upload)":
@@ -116,15 +104,12 @@ with col_input:
         if uploaded_file is not None:
             st.audio(uploaded_file)
             st.info("Audio uploaded. (Note: In production, this would run through a voice-clone detector).")
-            
             a_artifacts = st.multiselect("Select audio artifacts:", ["voice clone", "unnatural cadence", "breath pattern missing", "none"])
             a_transcript = st.text_area("Transcript (if available):")
-            
             content_data = {
                 "metadata": {"creation_date": "unknown", "device": "unknown", "duration": "unknown"},
                 "audio_analysis": {"artifacts": [a for a in a_artifacts if a != "none"]},
-                "transcript": a_transcript,
-                "source_url": ""
+                "transcript": a_transcript, "source_url": ""
             }
 
     elif content_type == "Document (Upload)":
@@ -135,13 +120,43 @@ with col_input:
                 doc_text = uploaded_file.read().decode("utf-8")
             else:
                 doc_text = "Binary document (PDF/Word). Text extraction pending."
-                
             content_data = {
                 "metadata": {"creation_date": "unknown", "author": "unknown", "format": uploaded_file.type},
                 "integrity": {"signals": []},
-                "text": doc_text,
-                "source_url": ""
+                "text": doc_text, "source_url": ""
             }
+
+    elif content_type == "Email":
+        col1, col2 = st.columns(2)
+        with col1:
+            e_from = st.text_input("From:", key="e_from")
+            e_spf = st.selectbox("SPF:", ["pass", "fail", "neutral"], key="e_spf")
+        with col2:
+            e_domain = st.text_input("Sending domain:", key="e_domain")
+            e_dkim = st.selectbox("DKIM:", ["pass", "fail", "neutral"], key="e_dkim")
+        e_body = st.text_area("Email body:", height=150, key="e_body")
+        content_data = {"headers": {"from": e_from, "from_domain": e_domain, "spf": e_spf, "dkim": e_dkim}, "body": e_body}
+
+    elif content_type == "Code":
+        col1, col2 = st.columns(2)
+        with col1:
+            c_author = st.text_input("Author:", key="c_author")
+        with col2:
+            c_source = st.text_input("Source:", key="c_source")
+        c_code = st.text_area("Code:", height=150, key="c_code")
+        content_data = {"metadata": {"author": c_author, "source": c_source}, "code": c_code}
+
+    elif content_type == "Social Post":
+        col1, col2 = st.columns(2)
+        with col1:
+            s_age = st.text_input("Account age:", key="s_age")
+            s_followers = st.number_input("Follower count:", min_value=0, value=0, key="s_followers")
+        with col2:
+            s_ratio = st.number_input("Like-to-share ratio:", min_value=0.0, value=0.0, key="s_ratio")
+            s_similarity = st.slider("Comment similarity (0-1):", 0.0, 1.0, 0.0, key="s_similarity")
+        s_text = st.text_area("Post text:", height=150, key="s_text")
+        s_source = st.text_input("Source URL:", key="s_source")
+        content_data = {"metadata": {"account_age": s_age, "follower_count": s_followers}, "engagement": {"like_to_share_ratio": s_ratio, "comment_similarity": s_similarity}, "text": s_text, "source_url": s_source}
 
     elif content_type == "Mixed":
         m_text = st.text_area("Text:", height=100, key="m_text")
@@ -157,7 +172,7 @@ with col_output:
     if verify_clicked:
         if content_data is not None:
             payload = content_data
-            ctype_map = {"Image (Upload)": "image", "Video (Upload)": "video", "Audio (Upload)": "audio", "Document (Upload)": "document", "Mixed": "mixed"}
+            ctype_map = {"Image (Upload)": "image", "Video (Upload)": "video", "Audio (Upload)": "audio", "Document (Upload)": "document", "Email": "email", "Code": "code", "Social Post": "social", "Mixed": "mixed"}
             ctype = ctype_map.get(content_type, "text")
         elif content:
             payload = content
