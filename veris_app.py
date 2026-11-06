@@ -26,19 +26,6 @@ st.markdown("""
         padding: 1rem;
         border-bottom: 1px solid #1a1a1a;
     }
-    .logo-mark {
-        width: 50px;
-        height: 50px;
-        background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 28px;
-        font-weight: 800;
-        color: #000;
-        box-shadow: 0 0 25px rgba(0, 242, 254, 0.4);
-    }
     .logo-text {
         font-size: 2.5rem;
         font-weight: 800;
@@ -164,11 +151,29 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# HEADER
+# HEADER WITH SVG LOGO
 # ============================================================
 st.markdown("""
 <div class="logo-container">
-    <div class="logo-mark">V</div>
+    <svg width="60" height="60" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#00f2fe;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#4facfe;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+        <circle cx="100" cy="100" r="85" fill="none" stroke="url(#grad1)" stroke-width="3" opacity="0.3"/>
+        <circle cx="100" cy="100" r="60" fill="none" stroke="url(#grad1)" stroke-width="2" opacity="0.5"/>
+        <line x1="100" y1="15" x2="100" y2="185" stroke="url(#grad1)" stroke-width="2" opacity="0.4"/>
+        <line x1="15" y1="100" x2="185" y2="100" stroke="url(#grad1)" stroke-width="2" opacity="0.4"/>
+        <circle cx="100" cy="100" r="12" fill="url(#grad1)"/>
+        <circle cx="100" cy="40" r="4" fill="url(#grad1)" opacity="0.6"/>
+        <circle cx="100" cy="160" r="4" fill="url(#grad1)" opacity="0.6"/>
+        <circle cx="40" cy="100" r="4" fill="url(#grad1)" opacity="0.6"/>
+        <circle cx="160" cy="100" r="4" fill="url(#grad1)" opacity="0.6"/>
+        <ellipse cx="100" cy="100" rx="90" ry="30" fill="none" stroke="url(#grad1)" stroke-width="1" opacity="0.2" transform="rotate(45 100 100)"/>
+        <ellipse cx="100" cy="100" rx="90" ry="30" fill="none" stroke="url(#grad1)" stroke-width="1" opacity="0.2" transform="rotate(-45 100 100)"/>
+    </svg>
     <div>
         <div class="logo-text">VERIS</div>
         <div class="logo-tagline">Structural Verification Engine v1.0</div>
