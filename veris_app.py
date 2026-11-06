@@ -1,13 +1,22 @@
 import streamlit as st
 import json
 import sys
+import os
 from PIL import Image
 from PIL.ExifTags import TAGS
+from supabase import create_client, Client
 sys.path.insert(0, ".")
 
 from veris_engine import veris_verify_full, generate_proof_links
 
 st.set_page_config(page_title="Veris | Structural Verification", page_icon="🔍", layout="wide")
+
+# ============================================================
+# SUPABASE DATABASE CONNECTION
+# ============================================================
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_KEY")
+supabase = create_client(supabase_url, supabase_key) if supabase_url and supabase_key else None
 
 # ============================================================
 # FUTURISTIC CSS ENGINE
@@ -183,6 +192,21 @@ with col_output:
 
         with st.spinner("Analyzing structural integrity..."):
             result = veris_verify_full(payload, ctype)
+            
+        # Save to Database
+        if supabase:
+            try:
+                v_res = result.get("verification", result)
+                sev = v_res.get("severity", {})
+                supabase.table("veris_logs").insert({
+                    "content_type": ctype,
+                    "content_snippet": str(payload)[:100],
+                    "severity_score": sev.get("score", 0),
+                    "severity_level": sev.get("level", "unknown"),
+                    "reasons": sev.get("reasons", [])
+                }).execute()
+            except Exception as e:
+                pass # Silently pass if db fails so it doesn't ruin the user experience
 
         st.markdown("<h3 style='color:#fff; font-weight:600;'>Analysis Output</h3>", unsafe_allow_html=True)
 
