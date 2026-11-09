@@ -166,10 +166,10 @@ def check_soundness(text):
 def check_contradiction(text):
     text_lower = text.lower()
     if re.search(r'\$[\d,]+(m|k|b)', text_lower) and "however" in text_lower and "only" in text_lower:
-        return {"check": "contradiction", "result": "contradictory", "reason": "Conflicting financial figures detected."}
+        return {"check": "contradiction", "result": "contradictory", "reason": "Conflicting financial figures detected.", "human_reason": "The text claims a high revenue figure, but then contradicts it with a lower figure."}
     if ("scheduled to finalize" in text_lower or "scheduled to close" in text_lower) and ("bankruptcy" in text_lower or "legally impossible" in text_lower):
-        return {"check": "contradiction", "result": "contradictory", "reason": "Conflicting legal status detected."}
-    return {"check": "contradiction", "result": "none", "reason": "No structural contradiction detected."}
+        return {"check": "contradiction", "result": "contradictory", "reason": "Conflicting legal status detected.", "human_reason": "The text claims a merger is finalizing, but also claims the company is bankrupt, making the merger legally impossible."}
+    return {"check": "contradiction", "result": "none", "reason": "No structural contradiction detected.", "human_reason": ""}
 
 def check_primary_validity(text):
     text_lower = text.lower()
@@ -323,6 +323,8 @@ def check_interconnection(text):
 def calculate_severity(result):
     score = 0
     reasons = []
+    evidence_chain = []
+    
     soundness = result.get("soundness", {})
     contradiction = result.get("contradiction", {})
     primary = result.get("primary_validity", {})
@@ -332,9 +334,12 @@ def calculate_severity(result):
     if contradiction.get("result") == "contradictory":
         score += 40
         reasons.append("Structural contradiction detected: " + contradiction.get("reason", ""))
+        evidence_chain.append(f"CONTRADICTION: {contradiction.get('human_reason')}")
+        
     if soundness.get("result") == "incoherent":
         score += 20
         reasons.append("Incoherent terms detected")
+        evidence_chain.append("SOUNDNESS FAIL: The text contains contradictory terms (always/never).")
         
     is_coherent = soundness.get("result") == "coherent"
     is_aligned = primary.get("result") == "aligned"
@@ -345,6 +350,7 @@ def calculate_severity(result):
     if primary.get("result") == "unaligned":
         score += 15
         reasons.append("No structural truth patterns matched")
+        evidence_chain.append("STRUCTURE: The text does not align with any known logical or ontological truth patterns.")
     elif is_aligned and is_forged:
         score += 10
         reasons.append("Uses truth patterns to legitimize forged source")
@@ -355,19 +361,24 @@ def calculate_severity(result):
     if is_forged:
         score += 30
         reasons.append("Forged source detected")
+        evidence_chain.append("FORGERY: The text references a known forged domain.")
     elif secondary.get("quality") == "unverified":
         score += 10
         reasons.append("Unverified source")
+        evidence_chain.append("UNVERIFIED: The source exists but could not be authenticated.")
     elif is_untraced:
         score += 5
         reasons.append("No source trace")
+        evidence_chain.append("TRACE FAIL: No verifiable URL or domain was found in the text.")
         
     if weight >= 10:
         score += 30
         reasons.append("Highly coordinated (weight " + str(weight) + ")")
+        evidence_chain.append("COORDINATION: The text contains high levels of coordination language (propaganda/bot markers).")
     elif weight >= 5:
         score += 20
         reasons.append("Coordinated (weight " + str(weight) + ")")
+        evidence_chain.append("COORDINATION: The text shows signs of coordinated language.")
     elif weight >= 2:
         score += 10
         reasons.append("Weakly coordinated (weight " + str(weight) + ")")
@@ -375,10 +386,12 @@ def calculate_severity(result):
     if is_coherent and (is_forged or weight >= 5 or primary.get("result") == "unaligned"):
         score += 10
         reasons.append("Coherent presentation of problematic content")
+        evidence_chain.append("MANIPULATION: The text is well-written (coherent) but carries problematic content. This is a sign of sophisticated manipulation.")
         
     score = min(score, 100)
     level = "critical" if score >= 70 else "high" if score >= 50 else "medium" if score >= 30 else "low" if score >= 10 else "minimal"
-    return {"score": score, "level": level, "reasons": reasons}
+    
+    return {"score": score, "level": level, "reasons": reasons, "evidence_chain": evidence_chain}
 
 def verify(text):
     soundness = check_soundness(text)
@@ -457,9 +470,4 @@ def generate_proof_links(result):
                 found.append({"type": "source", "label": domain, "url": url, "trust_score": trust.get("score", 0), "trust_tier": trust.get("tier", "unknown"), "trust_label": trust.get("label", "Unknown"), "note": source.get("note", "")})
         return found
     if "components" in v:
-        for comp_name, comp_data in v["components"].items():
-            if isinstance(comp_data, dict):
-                proofs.extend(extract(comp_data))
-    else:
-        proofs.extend(extract(v))
-    return proofs
+        for comp_name, comp_data in v["components
