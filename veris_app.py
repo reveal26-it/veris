@@ -206,7 +206,7 @@ with col_output:
                     "reasons": sev.get("reasons", [])
                 }).execute()
             except Exception as e:
-                pass # Silently pass if db fails so it doesn't ruin the user experience
+                pass
 
         st.markdown("<h3 style='color:#fff; font-weight:600;'>Analysis Output</h3>", unsafe_allow_html=True)
 
@@ -217,17 +217,13 @@ with col_output:
             if "severity" in v:
                 sev = v["severity"]
                 st.markdown(f'<div class="severity-{sev["level"]}">SEVERITY: {sev["score"]} / 100 — {sev["level"].upper()}</div>', unsafe_allow_html=True)
-                if sev.get("reasons"):
-                    st.markdown("<div style='color:#888; font-family:monospace; font-size:0.85rem; margin-top:1rem;'>", unsafe_allow_html=True)
-                    for r in sev["reasons"]:
-                        st.markdown(f"<div style='margin-bottom:0.25rem;'>› {r}</div>", unsafe_allow_html=True)
-                    st.markdown("</div>", unsafe_allow_html=True)
-            elif "total_severity" in v:
-                st.markdown(f'<div class="severity-{v["level"]}">TOTAL SEVERITY: {v["total_severity"]} / 100 — {v["level"].upper()}</div>', unsafe_allow_html=True)
-                if v.get("all_reasons"):
-                    st.markdown("<div style='color:#888; font-family:monospace; font-size:0.85rem; margin-top:1rem;'>", unsafe_allow_html=True)
-                    for r in v["all_reasons"]:
-                        st.markdown(f"<div style='margin-bottom:0.25rem;'>› {r}</div>", unsafe_allow_html=True)
+                
+                # Display the Human-Readable Evidence Chain
+                if sev.get("evidence_chain"):
+                    st.markdown("<div style='background:#0a0a0a; padding:1.5rem; border-radius:8px; border-left:3px solid #00f2fe; margin-top:1rem;'>", unsafe_allow_html=True)
+                    st.markdown("<h4 style='color:#00f2fe; margin-top:0; font-family:JetBrains Mono; font-size:0.9rem;'>VERIFICATION EVIDENCE</h4>", unsafe_allow_html=True)
+                    for e in sev["evidence_chain"]:
+                        st.markdown(f"<div style='color:#ccc; font-size:0.9rem; margin-bottom:0.5rem; font-family:Inter;'>• {e}</div>", unsafe_allow_html=True)
                     st.markdown("</div>", unsafe_allow_html=True)
 
             proofs = generate_proof_links(result)
