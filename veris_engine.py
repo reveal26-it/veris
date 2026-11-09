@@ -469,4 +469,25 @@ def generate_proof_links(result):
             sv = comp["secondary_validity"]
             for source in sv.get("found", []):
                 domain = source.get("value", "")
-                url = domain if domain.startswith("http") else "https
+                url = domain if domain.startswith("http") else "https://" + domain if domain else None
+                trust = auto_trust_score(domain) if domain else {}
+                found.append({"type": "source", "label": domain, "url": url, "trust_score": trust.get("score", 0), "trust_tier": trust.get("tier", "unknown"), "trust_label": trust.get("label", "Unknown"), "note": source.get("note", "")})
+            for u in sv.get("urls", []):
+                domain = u.get("domain", "")
+                trust = auto_trust_score(domain) if domain else {}
+                found.append({"type": "url_trace", "label": domain, "url": u.get("url"), "trust_score": trust.get("score", 0), "trust_tier": trust.get("tier", "unknown"), "trust_label": trust.get("label", "Unknown"), "forgery": u.get("forgery", False), "note": u.get("note", "")})
+        if "source_check" in comp:
+            sc = comp["source_check"]
+            for source in sc.get("found", []):
+                domain = source.get("value", "")
+                url = domain if domain.startswith("http") else "https://" + domain if domain else None
+                trust = auto_trust_score(domain) if domain else {}
+                found.append({"type": "source", "label": domain, "url": url, "trust_score": trust.get("score", 0), "trust_tier": trust.get("tier", "unknown"), "trust_label": trust.get("label", "Unknown"), "note": source.get("note", "")})
+        return found
+    if "components" in v:
+        for comp_name, comp_data in v["components"].items():
+            if isinstance(comp_data, dict):
+                proofs.extend(extract(comp_data))
+    else:
+        proofs.extend(extract(v))
+    return proofs
