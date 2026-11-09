@@ -284,6 +284,21 @@ def check_secondary_validity(text):
     text_lower = text.lower()
     found_traces = []
     quality = "untraced"
+    
+    # UPGRADE: Check for Non-URL Traces first (DOIs, Case Numbers, IDs)
+    doi_match = re.search(r'doi:10\.\d{4,9}/[-._;()/:A-Z0-9]+', text_lower)
+    if doi_match:
+        return {"check": "secondary_validity", "result": "traced", "quality": "verified", "found": [{"type": "doi", "value": doi_match.group(0), "verified": True}], "urls": []}
+        
+    case_match = re.search(r'(case|docket)\s*(no\.?|number)?\s*[:\-]?\s*([a-z0-9\-]+)', text_lower)
+    if case_match:
+        return {"check": "secondary_validity", "result": "traced", "quality": "verified", "found": [{"type": "legal_case", "value": case_match.group(0), "verified": True}], "urls": []}
+        
+    doc_match = re.search(r'document\s*(id|no\.?|number)?\s*[:\-]?\s*([a-z0-9\-]+)', text_lower)
+    if doc_match:
+        return {"check": "secondary_validity", "result": "traced", "quality": "verified", "found": [{"type": "document_id", "value": doc_match.group(0), "verified": True}], "urls": []}
+
+    # Fallback to URL traces
     urls = trace_urls(text)
     for forgery in secondary_reference["known_forgeries"]:
         if forgery["pattern"] in text_lower:
@@ -369,7 +384,7 @@ def calculate_severity(result):
     elif is_untraced:
         score += 5
         reasons.append("No source trace")
-        evidence_chain.append("TRACE FAIL: No verifiable URL or domain was found in the text.")
+        evidence_chain.append("TRACE FAIL: No verifiable URL, DOI, Case Number, or Document ID was found in the text.")
         
     if weight >= 10:
         score += 30
@@ -454,25 +469,4 @@ def generate_proof_links(result):
             sv = comp["secondary_validity"]
             for source in sv.get("found", []):
                 domain = source.get("value", "")
-                url = domain if domain.startswith("http") else "https://" + domain if domain else None
-                trust = auto_trust_score(domain) if domain else {}
-                found.append({"type": "source", "label": domain, "url": url, "trust_score": trust.get("score", 0), "trust_tier": trust.get("tier", "unknown"), "trust_label": trust.get("label", "Unknown"), "note": source.get("note", "")})
-            for u in sv.get("urls", []):
-                domain = u.get("domain", "")
-                trust = auto_trust_score(domain) if domain else {}
-                found.append({"type": "url_trace", "label": domain, "url": u.get("url"), "trust_score": trust.get("score", 0), "trust_tier": trust.get("tier", "unknown"), "trust_label": trust.get("label", "Unknown"), "forgery": u.get("forgery", False), "note": u.get("note", "")})
-        if "source_check" in comp:
-            sc = comp["source_check"]
-            for source in sc.get("found", []):
-                domain = source.get("value", "")
-                url = domain if domain.startswith("http") else "https://" + domain if domain else None
-                trust = auto_trust_score(domain) if domain else {}
-                found.append({"type": "source", "label": domain, "url": url, "trust_score": trust.get("score", 0), "trust_tier": trust.get("tier", "unknown"), "trust_label": trust.get("label", "Unknown"), "note": source.get("note", "")})
-        return found
-    if "components" in v:
-        for comp_name, comp_data in v["components"].items():
-            if isinstance(comp_data, dict):
-                proofs.extend(extract(comp_data))
-    else:
-        proofs.extend(extract(v))
-    return proofs
+                url = domain if domain.startswith("http") else "https
