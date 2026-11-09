@@ -470,4 +470,9 @@ def generate_proof_links(result):
                 found.append({"type": "source", "label": domain, "url": url, "trust_score": trust.get("score", 0), "trust_tier": trust.get("tier", "unknown"), "trust_label": trust.get("label", "Unknown"), "note": source.get("note", "")})
         return found
     if "components" in v:
-        for comp_name, comp_data in v["components
+        for comp_name, comp_data in v["components"].items():
+            if isinstance(comp_data, dict):
+                proofs.extend(extract(comp_data))
+    else:
+        proofs.extend(extract(v))
+    return proofs
