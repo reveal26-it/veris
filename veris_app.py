@@ -52,7 +52,7 @@ st.markdown("""
         <circle cx="100" cy="100" r="12" fill="url(#grad1)"/><circle cx="100" cy="40" r="4" fill="url(#grad1)" opacity="0.6"/><circle cx="100" cy="160" r="4" fill="url(#grad1)" opacity="0.6"/>
         <circle cx="40" cy="100" r="4" fill="url(#grad1)" opacity="0.6"/><circle cx="160" cy="100" r="4" fill="url(#grad1)" opacity="0.6"/>
     </svg>
-    <div><div class="logo-text">VERIS</div><div class="logo-tagline">Structural Verification Engine v2.0</div></div>
+    <div><div class="logo-text">VERIS</div><div class="logo-tagline">Structural Verification Engine v2.1</div></div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -64,7 +64,7 @@ col_input, col_empty, col_output = st.columns([1.2, 0.1, 1.2])
 with col_input:
     st.markdown("<h3 style='color:#fff; font-weight:600;'>System Input</h3>", unsafe_allow_html=True)
     
-    content_type = st.selectbox("Verification Type", ["Text", "Link / URL", "Image (Upload)", "Video (Upload)", "Audio (Upload)", "Document (Upload)", "Email", "Code", "Social Post", "Mixed"])
+    content_type = st.selectbox("Verification Type", ["Text", "Link / URL", "Document (Upload)", "Image (Upload)", "Video (Upload)", "Audio (Upload)", "Email", "Code", "Social Post", "Mixed"])
     
     content = None
     content_data = None
@@ -75,6 +75,17 @@ with col_input:
     elif content_type == "Link / URL":
         content = st.text_input("Enter URL:", placeholder="https://example.com/article")
         
+    elif content_type == "Document (Upload)":
+        uploaded_file = st.file_uploader("Upload Document", type=["txt", "pdf", "docx"])
+        if uploaded_file is not None:
+            st.info(f"Document uploaded: {uploaded_file.name}")
+            if uploaded_file.type == "text/plain":
+                content = uploaded_file.read().decode("utf-8")
+                st.text_area("Extracted Text:", content, height=150, disabled=True)
+            else:
+                content = "Binary document (PDF/Word). Text extraction pending."
+                st.warning("PDF and Word extraction requires an external library (PyPDF2/python-docx). For now, please use .txt files.")
+            
     elif content_type == "Image (Upload)":
         uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
         if uploaded_file is not None:
@@ -119,20 +130,6 @@ with col_input:
                 "metadata": {"creation_date": "unknown", "device": "unknown", "duration": "unknown"},
                 "audio_analysis": {"artifacts": [a for a in a_artifacts if a != "none"]},
                 "transcript": a_transcript, "source_url": ""
-            }
-
-    elif content_type == "Document (Upload)":
-        uploaded_file = st.file_uploader("Upload Document", type=["pdf", "txt", "docx"])
-        if uploaded_file is not None:
-            st.info(f"Document uploaded: {uploaded_file.name}")
-            if uploaded_file.type == "text/plain":
-                doc_text = uploaded_file.read().decode("utf-8")
-            else:
-                doc_text = "Binary document (PDF/Word). Text extraction pending."
-            content_data = {
-                "metadata": {"creation_date": "unknown", "author": "unknown", "format": uploaded_file.type},
-                "integrity": {"signals": []},
-                "text": doc_text, "source_url": ""
             }
 
     elif content_type == "Email":
@@ -181,7 +178,7 @@ with col_output:
     if verify_clicked:
         if content_data is not None:
             payload = content_data
-            ctype_map = {"Image (Upload)": "image", "Video (Upload)": "video", "Audio (Upload)": "audio", "Document (Upload)": "document", "Email": "email", "Code": "code", "Social Post": "social", "Mixed": "mixed"}
+            ctype_map = {"Image (Upload)": "image", "Video (Upload)": "video", "Audio (Upload)": "audio", "Email": "email", "Code": "code", "Social Post": "social", "Mixed": "mixed"}
             ctype = ctype_map.get(content_type, "text")
         elif content:
             payload = content
@@ -218,7 +215,6 @@ with col_output:
                 sev = v["severity"]
                 st.markdown(f'<div class="severity-{sev["level"]}">SEVERITY: {sev["score"]} / 100 — {sev["level"].upper()}</div>', unsafe_allow_html=True)
                 
-                # Display the Human-Readable Evidence Chain
                 if sev.get("evidence_chain"):
                     st.markdown("<div style='background:#0a0a0a; padding:1.5rem; border-radius:8px; border-left:3px solid #00f2fe; margin-top:1rem;'>", unsafe_allow_html=True)
                     st.markdown("<h4 style='color:#00f2fe; margin-top:0; font-family:JetBrains Mono; font-size:0.9rem;'>VERIFICATION EVIDENCE</h4>", unsafe_allow_html=True)
@@ -250,4 +246,4 @@ with col_output:
         </div>
         """, unsafe_allow_html=True)
 
-st.markdown('<div style="text-align: center; color: #222; font-size: 0.7rem; margin-top: 4rem; font-family: monospace;">VERIS PROTOCOL v2.0 // WINDOW, NOT GATE</div>', unsafe_allow_html=True)
+st.markdown('<div style="text-align: center; color: #222; font-size: 0.7rem; margin-top: 4rem; font-family: monospace;">VERIS PROTOCOL v2.1 // WINDOW, NOT GATE</div>', unsafe_allow_html=True)
